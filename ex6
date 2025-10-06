@@ -1,0 +1,120 @@
+# Ex.No: 06 HOLT WINTERS METHOD
+### Date: 05.10.2025
+
+### AIM:
+To implement the Holt Winters Method Model using Python. 
+
+### ALGORITHM:
+1. You import the necessary libraries
+2. You load a CSV file containing daily sales data into a DataFrame, parse the 'date' column as
+datetime, set it as index, and perform some initial data exploration
+3. Resample it to a monthly frequency beginning of the month
+4. You plot the time series data, and determine whether it has additive/multiplicative
+trend/seasonality
+5. Split test,train data,create a model using Holt-Winters method, train with train data and
+Evaluate the model predictions against test data
+6. Create teh final model and predict future data and plot it
+   
+### PROGRAM
+```
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from statsmodels.tsa.seasonal import seasonal_decompose
+
+data = pd.read_csv("gold_price_data.csv", parse_dates=['Date'], index_col='Date')
+print("First 5 rows of data:")
+print(data.head())
+
+data_monthly = data.resample('MS').mean()  # 'MS' = Month Start
+print("\nMonthly resampled data:")
+print(data_monthly.head())
+
+plt.figure(figsize=(10, 5))
+plt.plot(data_monthly, label='Monthly Gold Price')
+plt.title("Monthly Gold Price Time Series")
+plt.xlabel("Date")
+plt.ylabel("Gold Price")
+plt.legend()
+plt.show()
+
+scaler = MinMaxScaler()
+scaled_data = pd.Series(
+    scaler.fit_transform(data_monthly.values.reshape(-1, 1)).flatten(),
+    index=data_monthly.index
+)
+
+# Plot scaled data
+plt.figure(figsize=(10, 5))
+scaled_data.plot(title="Scaled Monthly Gold Price")
+plt.show()
+
+
+decomposition = seasonal_decompose(data_monthly, model="additive")
+decomposition.plot()
+plt.show()
+
+scaled_data = scaled_data + 1  # Avoid zero or negative values for multiplicative models
+train_size = int(len(scaled_data) * 0.8)
+train_data = scaled_data[:train_size]
+test_data = scaled_data[train_size:]
+
+model = ExponentialSmoothing(
+    train_data,
+    trend='add',
+    seasonal='mul',
+    seasonal_periods=12
+).fit()
+
+test_forecast = model.forecast(steps=len(test_data))
+
+# Plot train, test, and forecast
+plt.figure(figsize=(10, 5))
+train_data.plot(label='Train')
+test_data.plot(label='Test')
+test_forecast.plot(label='Forecast', linestyle='--')
+plt.title("Holt-Winters Forecast vs Actual")
+plt.legend()
+plt.show()
+
+rmse = np.sqrt(mean_squared_error(test_data, test_forecast))
+print(f"Root Mean Squared Error (RMSE): {rmse:.4f}")
+
+
+final_model = ExponentialSmoothing(
+    scaled_data,
+    trend='add',
+    seasonal='mul',
+    seasonal_periods=12
+).fit()
+
+future_steps = 12  # predict next 12 months
+future_forecast = final_model.forecast(steps=future_steps)
+
+plt.figure(figsize=(10, 5))
+scaled_data.plot(label='Original Scaled Data')
+future_forecast.plot(label='Future Forecast', linestyle='--')
+plt.title("Gold Price Forecast for Next 12 Months")
+plt.legend()
+plt.show()
+
+future_forecast_original = scaler.inverse_transform((future_forecast - 1).values.reshape(-1, 1))
+future_dates = pd.date_range(start=scaled_data.index[-1] + pd.DateOffset(months=1), periods=future_steps, freq='MS')
+
+forecast_df = pd.DataFrame(future_forecast_original, index=future_dates, columns=['Predicted Gold Price'])
+print("\nPredicted Gold Prices for next 12 months:")
+print(forecast_df)
+
+
+
+```
+### OUTPUT:
+
+
+
+
+### RESULT:
+Thus we have successfully implemented the auto regression function using python.
